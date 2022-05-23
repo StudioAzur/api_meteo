@@ -1,109 +1,140 @@
 import { WEATHER_API_KEY } from "./config.js";
 
-let display = document.querySelector("#display");
-let h2Title = document.querySelector("#h2_title");
+/* Sélection des éléments form, input et section depuis le DOM. */
+let form = document.querySelector("form");
 let inputCity = document.querySelector("#input_city");
 let section = document.querySelector("#section_jour_a_venir");
 
-// On initialise nos variables de location
-let longitude;
-let latitude;
-let city = "";
-
-
-/**
- * Il prend un tableau d'objets, crée une liste, puis parcourt le tableau et crée un élément de liste
- * pour chaque objet du tableau.
- * 
- * Le problème est que la fonction ne fonctionne pas comme prévu.
- * 
- * La fonction est censée créer un élément de liste pour chaque objet du tableau, mais elle ne crée
- * qu'un seul élément de liste.
- * 
- * L'élément de liste contient les valeurs du dernier objet du tableau.
- * 
- * J'ai essayé de déboguer la fonction, mais je n'arrive pas à comprendre ce qui ne va pas.
- * 
- * J'ai également essayé de réécrire la fonction, mais je n'arrive pas à la faire fonctionner.
- * 
- * J'apprécierais toute aide.
- * 
- * Merci d'avance.
- * @param listDayMeteo - [{…}, {…}, {…}, {…}, {…}, {…}, {…}]
- */
-const displayMeteo = (listDayMeteo) => {
-    let listePrevision = document.createElement("ul");
-    section.appendChild(listePrevision);
-    listDayMeteo.forEach((day) => {
-        console.log(day);
-        let divData = document.createElement("div");
-        divData.setAttribute("class", "meteo");
-        // On formate nos données en objet
-        let meteo = {
-            description: day.weather[0].description,
-            icon: day.weather[0].icon,
-            temperature: day.main.temp,
-            min: day.main.temp_min,
-            max: day.main.temp_max,
-        };
-       let keys = Object.keys(meteo);
-       let values = Object.values(meteo);
-
-        for (let i = 0; i < meteo.length; i++) {
-            console.log(`${keys[i]} : ${values[i]}`);
-            const liMeteo = document.createElement("li");
-            liMeteo.setAttribute("id", `meteo${i}`);
-            liMeteo.textContent = `${keys[i]} : ${values[i]}`;
-            listePrevision.appendChild(liMeteo);
-        }
-    });
-   
-};
+/* En écoutant le formulaire et lorsque le formulaire est soumis, il réinitialisera la section,
+empêchera l'action par défaut, obtiendra la valeur de l'entrée, puis récupérera la ville. */
+form.addEventListener("submit", (event) => {
+  reset();
+  event.preventDefault();
+  let city = inputCity.value;
+  fetchCity(city);
+});
 
 /**
- * Il prend la latitude et la longitude de la position de l'utilisateur, puis utilise l'API
- * OpenWeatherMap pour récupérer les données météorologiques pour cette position.
- *
- * La fonction est appelée de la manière suivante :
- * @param lat - latitude
- * @param long - longitude
- */
-const fetchPosition = (lat, long) => {
-    let queryPosition = `http://api.openweathermap.org/data/2.5/forecast?lat=${lat}&lon=${long}&lang=fr&units=metric&appid=${WEATHER_API_KEY}`;
-    let dataPosition = async () => (await fetch(queryPosition)).json();
-    dataPosition()
-        .then((result) => {
-            h2Title.innerHTML = result.city.name;
-            let listDayMeteo = result.list;
-            console.log(result.list);
-            displayMeteo(listDayMeteo);
-        })
-        .catch((error) => {
-            console.log(error);
-        });
-};
-
-/**
- * Il prend une ville comme paramètre, crée une chaîne de requête, récupère la requête, puis enregistre
- * la réponse
- * @param city - Le nom de la ville
+ * Il récupère les données météo de l'API OpenWeatherMap et les affiche sur la page
+ * @param city - le nom de la ville
+ * @returns le response.json() qui est la valeur de la réponse.
  */
 const fetchCity = (city) => {
-    let queryCity = `http://api.openweathermap.org/geo/1.0/direct?q=${city}&appid=${WEATHER_API_KEY}`;
-    let dataCity = async () => (await fetch(queryCity)).json();
-    dataCity()
-        .then((result) => {
-            latitude = result[0].lat.toString();
-            longitude = result[0].lon.toString();
-            fetchPosition(latitude, longitude);
-        })
-        .catch((error) => {
-            console.log(error);
-        });
+  let query = `https://api.openweathermap.org/data/2.5/forecast?q=${city}&lang=fr&appid=${WEATHER_API_KEY}`;
+  fetch(query)
+    .then(function (response) {
+      if (response.ok) {
+        return response.json();
+      }
+    })
+    .then(function (value) {
+      let coord = value.city.coord;
+      displayCity(value);
+      fetchLocation(coord);
+    })
+    .catch(function (error) {
+      console.log(error);
+    });
 };
 
-display.addEventListener("click", (e) => {
-    e.preventDefault();
-    city = inputCity.value;
-    fetchCity(city);
-});
+/**
+ * Il récupère les données météorologiques de l'API et les affiche sur la page.
+ * @param coord - {
+ * @returns La réponse est un objet JSON.
+ */
+const fetchLocation = (coord) => {
+  let query = `http://api.openweathermap.org/data/2.5/forecast?lat=${coord.lat}&lon=${coord.lon}&lang=fr&units=metric&appid=${WEATHER_API_KEY}`;
+  fetch(query)
+    .then(function (response) {
+      if (response.ok) {
+        return response.json();
+      }
+    })
+    .then(function (value) {
+      let listDay = value.list;
+      displayMeteo(listDay);
+    })
+    .catch(function (error) {
+      console.log(error);
+    });
+};
+
+/**
+ * Il prend une valeur comme paramètre, puis il affiche la latitude et la longitude de la ville dans le
+ * HTML.
+ * @param value - la réponse de l'API
+ */
+const displayCity = (value) => {
+  let latitude = value.city.coord.lat;
+  let longitude = value.city.coord.lon;
+  let spanLat = document.querySelector("#latitude");
+  let spanLon = document.querySelector("#longitude");
+  let h2Title = document.querySelector("#h2_title");
+  spanLat.textContent = `La latitude de cette ville est ${latitude}`;
+  spanLon.textContent = `La longitude de cette ville est ${longitude}`;
+  h2Title.textContent = value.city.name;
+};
+
+/**
+ * Il prend un tableau de tableaux et pousse chaque tableau dans un nouveau tableau.
+ * @param listDay - [{
+ */
+const displayMeteo = (listDay) => {
+  let listOfDay = [];
+  listDay.forEach((list) => {
+    listOfDay.push(list);
+  });
+  createObjectDay(listOfDay);
+};
+
+/**
+ * Il prend un tableau d'objets, et pour chaque objet du tableau, il crée un nouvel objet avec
+ * certaines des propriétés de l'objet d'origine, puis appelle une fonction pour créer un nouvel
+ * élément dans le DOM.
+ * @param listOfDay - un tableau d'objets
+ */
+const createObjectDay = (listOfDay) => {
+  let meteo = [];
+  listOfDay.forEach((day) => {
+    console.log(day);
+    meteo.push({
+      id: day.dt,
+      date: day.dt_txt,
+      description: day.weather[0].description,
+      icon: day.weather[0].icon,
+      temperature: day.main.temp,
+      min: day.main.temp_min,
+      max: day.main.temp_max,
+    });
+  });
+  for (let index = 0; index < listOfDay.length; index++) {
+    createAreaDay(meteo[index]);
+  }
+};
+
+/**
+ * Il prend un objet meteo comme argument et renvoie une chaîne HTML qui est ensuite ajoutée à
+ * l'élément section.
+ * @param meteo - {
+ */
+const createAreaDay = (meteo) => {
+  let area = `
+    <div class="prevision" id=${meteo.id}>
+    <p>Temps prévu : ${meteo.description}</p>
+    <img src="http://openweathermap.org/img/w/${meteo.icon}.png">
+    <p> le ${meteo.date} </p>
+        <ul>
+            <li> Température : ${meteo.temperature} °C</li>
+            <li>Temparature minimum : ${meteo.min} °C</li>
+            <li>Température maximum : ${meteo.max} °C</li>
+        <ul>
+    </div>`;
+  section.innerHTML += area;
+};
+
+/**
+ * Il réinitialise le innerHTML de l'élément de section sur une chaîne vide.
+ */
+const reset = () => {
+  section.innerHTML = "";
+};
