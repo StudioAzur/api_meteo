@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" type="text/css" href="./assets/css/style.css">
+    <title>Title</title>
+</head>
+<script defer src="./assets/js/main.js" type="module"></script>
+
+<body>
+    <header>
+        <h1>API Meteo</h1>
+    </header>
+    <main>
+        <form action="">
+            <label for="input_city">Entrez votre ville : </label>
+            <input type="text" id="input_city" name="input_city">
+            <button id="display" type="submit">Afficher</button>
+        </form>
+        <section id="section_general">
+            <h2 id="h2_title"></h2>
+            <p>Cette ville se situe sur les coordonnés suivantes</p>
+            <ul>
+                <li><span id="latitude"></span></li>
+                <li><span id="longitude"></span></li>
+            </ul>
+        </section>
+        <section id="section_jour_a_venir"></section>
+    </main>
+    <script src="./assets/js/config.js" type="module"></script>
+    <script type ="module" src="./assets/js/index.js"></script>
+</body>
+
+</html>
